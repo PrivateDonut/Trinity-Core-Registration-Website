@@ -1,6 +1,8 @@
 <?php
 // General Configuation
-$realm = 'logon.ac-web.org';
+$title = 'Server Name';
+$realmlist = 'logon.server.com';
+
 // Database Information
 $host = "localhost"; // Host IP or localhost
 $user = "root"; // Database Username

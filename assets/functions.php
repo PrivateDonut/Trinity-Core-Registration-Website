@@ -1,6 +1,8 @@
 <?php
-$username = $_POST['username'];
-$password = $_POST['password'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    $email = $_POST['email'];
+
 
 function calculateSRP6Verifier($username, $password, $salt) {
     $g = gmp_init(7);
@@ -14,22 +16,51 @@ function calculateSRP6Verifier($username, $password, $salt) {
     return $verifier;
 }
 
-function Registration($username, $password)
+function Registration($username, $password, $email)
 {
     session_start();
-    require('./assets/config.php');
+    include 'config.php';
+
+    if (empty($username) || empty($password) || empty($email)) {
+        $_SESSION['empty'] = "Please fill all fields";
+        header("Location: ../index.php");
+        exit();
+    }
+
     $salt = random_bytes(32);
     $verifier = CalculateSRP6Verifier($username, $password, $salt);
 
-    $stmt = $DB->prepare("INSERT INTO account (username, salt, verifier) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $username, $salt, $verifier);
-        if($stmt->execute()) {
-            $_SESSION['success']="Account Successfully Created";
-            header('Location: ' . $_SERVER['HTTP_REFERER']);
-            exit();
-        }else{
-            echo('Didnt work.');
-        }
+    $stmt = $DB->prepare("SELECT * FROM account WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $_SESSION['userExist'] = "Username already exists";
+        header("Location: ../index.php");
+        exit();
+    }
+
+    $stmt = $DB->prepare("SELECT * FROM account WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $_SESSION['emailExist'] = "Email already exists";
+        header("Location: ../index.php");
+        exit();
+    }
+
+    $stmt = $DB->prepare("INSERT INTO account (username, salt, verifier, email) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $username, $salt, $verifier, $email);
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Account successfully created";
+    } else {
+        $_SESSION['error'] = "Something went wrong";
+    }
+
+    header("Location: ../index.php");
+    exit();
 }
 
-echo Registration($username, $password);
+
+echo Registration($username, $password, $email);
